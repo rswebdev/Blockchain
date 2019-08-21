@@ -62,8 +62,7 @@ class Blockchain implements Serializable {
 
     private void thinkAboutNumbersOfZeroes(float creationTime) {
         if (creationTime > 120.0) {
-            numberOfZeroes--;
-            numberOfZeroes--;
+            numberOfZeroes -= 2;
             debugOutput("Creation took too long, decreasing N to " + numberOfZeroes, LOG_TYPE.IMPORTANT, LOG_SENDER.CHAIN);
         } else if (creationTime > 60.0) {
             numberOfZeroes--;
