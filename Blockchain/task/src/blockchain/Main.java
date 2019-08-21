@@ -77,6 +77,22 @@ public class Main {
             validate = true;
         }
 
+        int numberOfBlocks;
+
+        if (arguments.containsKey("-blocks")) {
+            numberOfBlocks = Math.max(Math.abs(Integer.parseInt(arguments.get("-blocks"))), 1);
+        } else {
+            numberOfBlocks = 10;
+        }
+
+        int numberOfMiners;
+
+        if (arguments.containsKey("-miners")) {
+            numberOfMiners = Math.max(Math.abs(Integer.parseInt(arguments.get("-miners"))), 1);
+        } else {
+            numberOfMiners = 5;
+        }
+
         long start;
         Blockchain blockchain;
 
@@ -87,6 +103,26 @@ public class Main {
             System.out.println("Enter how many zeros the hash must starts with:");
             numberOfZeroes = Integer.parseInt(scanner.next());
         }
+
+        Blockchain.setOutputOptions(printOutput, outDebugInformation);
+
+        Blockchain.debugOutput("Blockchain v.1", Blockchain.LOG_TYPE.IMPORTANT, Blockchain.LOG_SENDER.APP);
+        Blockchain.debugOutput("   by rswebdev", Blockchain.LOG_TYPE.IMPORTANT, Blockchain.LOG_SENDER.APP);
+        Blockchain.debugOutput("", Blockchain.LOG_TYPE.INFO, Blockchain.LOG_SENDER.APP);
+        Blockchain.debugOutput("Options:", Blockchain.LOG_TYPE.INFO, Blockchain.LOG_SENDER.APP);
+        Blockchain.debugOutput("  numberOfBlocks: " + numberOfBlocks, Blockchain.LOG_TYPE.INFO, Blockchain.LOG_SENDER.APP);
+        Blockchain.debugOutput("  numberOfMiners: " + numberOfMiners, Blockchain.LOG_TYPE.INFO, Blockchain.LOG_SENDER.APP);
+        Blockchain.debugOutput("  numberOfZeroes: " + numberOfZeroes, Blockchain.LOG_TYPE.INFO, Blockchain.LOG_SENDER.APP);
+        Blockchain.debugOutput("  validate: " + validate, Blockchain.LOG_TYPE.INFO, Blockchain.LOG_SENDER.APP);
+        Blockchain.debugOutput("  manipulate: " + manipulate, Blockchain.LOG_TYPE.INFO, Blockchain.LOG_SENDER.APP);
+        Blockchain.debugOutput("  printOutput: " + printOutput, Blockchain.LOG_TYPE.INFO, Blockchain.LOG_SENDER.APP);
+        Blockchain.debugOutput("  outputDebugInformation: " + outDebugInformation, Blockchain.LOG_TYPE.INFO, Blockchain.LOG_SENDER.APP);
+        Blockchain.debugOutput("  serializeChain: " + serializeChain, Blockchain.LOG_TYPE.INFO, Blockchain.LOG_SENDER.APP);
+        Blockchain.debugOutput("  getNumbersOfZeroesFromInput: " + getNumbersOfZeroesFromInput, Blockchain.LOG_TYPE.INFO, Blockchain.LOG_SENDER.APP);
+        Blockchain.debugOutput("  printOptions: " + printOptions, Blockchain.LOG_TYPE.INFO, Blockchain.LOG_SENDER.APP);
+        Blockchain.debugOutput("  printStart: " + printStart, Blockchain.LOG_TYPE.INFO, Blockchain.LOG_SENDER.APP);
+        Blockchain.debugOutput("  printEnd: " + printEnd, Blockchain.LOG_TYPE.INFO, Blockchain.LOG_SENDER.APP);
+        Blockchain.debugOutput("", Blockchain.LOG_TYPE.INFO, Blockchain.LOG_SENDER.APP);
 
         start = new Date().getTime();
 
@@ -108,24 +144,6 @@ public class Main {
             blockchain = new Blockchain(numberOfZeroes);
         }
 
-        Blockchain.setOutputOptions(printOutput, outDebugInformation);
-
-        int numberOfBlocks;
-
-        if (arguments.containsKey("-blocks")) {
-            numberOfBlocks = Math.max(Math.abs(Integer.parseInt(arguments.get("-blocks"))), 1);
-        } else {
-            numberOfBlocks = 10;
-        }
-
-        int numberOfMiners;
-
-        if (arguments.containsKey("-miners")) {
-            numberOfMiners = Math.max(Math.abs(Integer.parseInt(arguments.get("-miners"))), 1);
-        } else {
-            numberOfMiners = 5;
-        }
-
         // mining
         ExecutorService executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
 
@@ -133,14 +151,12 @@ public class Main {
 
             Blockchain.debugOutput("A new round of mining: " + (i+1), Blockchain.LOG_TYPE.INFO, Blockchain.LOG_SENDER.APP);
 
-            String superSecretData = "Super secure Data: " + new Date().getTime();
-
             // @TODO Add data to chain, not to miner
 
             List<Callable<Void>> callables = new ArrayList<>();
 
             for (int j = 1; j <= numberOfMiners; j++) {
-                callables.add(toCallable(new Miner(blockchain, j, superSecretData)));
+                callables.add(toCallable(new Miner(blockchain, j)));
             }
 
             if (executorService.isShutdown()) {

@@ -801,6 +801,20 @@
                               </TaskFile>
                             </value>
                           </entry>
+                          <entry key="src/blockchain/MessageSender.java">
+                            <value>
+                              <TaskFile>
+                                <option name="answerPlaceholders">
+                                  <list />
+                                </option>
+                                <option name="highlightErrors" value="true" />
+                                <option name="name" value="src/blockchain/MessageSender.java" />
+                                <option name="text" value="" />
+                                <option name="trackChanges" value="true" />
+                                <option name="visible" value="true" />
+                              </TaskFile>
+                            </value>
+                          </entry>
                         </map>
                       </option>
                       <option name="updateDate" value="1561938909000" />

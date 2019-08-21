@@ -5,7 +5,6 @@ import java.util.Date;
 public class Miner implements Runnable {
 
     private final Blockchain blockchain;
-    private String data;
     private int minerId;
 
     Miner(Blockchain blockchain, int minerId) {
@@ -13,24 +12,19 @@ public class Miner implements Runnable {
         this.minerId = minerId;
     }
 
-    Miner(Blockchain blockchain, int minerId, String dataToAdd) {
-        this.blockchain = blockchain;
-        this.minerId = minerId;
-        addData(dataToAdd);
-    }
-
-    void addData(String data) {
-        this.data = data;
-    }
-
     @Override
     public void run() {
 
         Blockchain.debugOutput(String.format("Miner # %d generates a block...", minerId), Blockchain.LOG_TYPE.INFO, Blockchain.LOG_SENDER.MINER);
 
-        Block block = new Block(blockchain.nextId(), blockchain.lastHash(), blockchain.getZeroes());
+        Block block;
+
+        do {
+            block = blockchain.getBlockToMine();
+        } while (block.isValidated());
+
         block.setMiner(String.valueOf(minerId));
-        block.add("data", data);
+        block.addPayload(String.format("Miner # %d: here comes the block, da da da daaa", minerId));
 
         Blockchain.debugOutput(String.format("Miner # %d started hashing of block #%d...", minerId, block.id), Blockchain.LOG_TYPE.INFO, Blockchain.LOG_SENDER.MINER);
         String magicNumber;
@@ -49,7 +43,7 @@ public class Miner implements Runnable {
             Blockchain.debugOutput(String.format("Miner # %d finished hashing of block #%d...", minerId, block.id), Blockchain.LOG_TYPE.INFO, Blockchain.LOG_SENDER.MINER);
 
             Blockchain.debugOutput(String.format("Miner # %d adds block #%d to chain...", minerId, block.id), Blockchain.LOG_TYPE.INFO, Blockchain.LOG_SENDER.MINER);
-            blockchain.add(block);
+            blockchain.receiveHash(block);
             Blockchain.debugOutput(String.format("Miner # %d is done with block #%d...", minerId, block.id), Blockchain.LOG_TYPE.INFO, Blockchain.LOG_SENDER.MINER);
         }
     }

@@ -1,6 +1,7 @@
 package blockchain;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Random;
@@ -14,8 +15,9 @@ public class Block implements Serializable {
     final String prevHash;
 
     HashMap<String, String> information = new HashMap<>();
+    private ArrayList<String> payload = new ArrayList<>();
 
-    String blockHash = "";
+    String blockHash = null;
 
     Random random;
 
@@ -24,7 +26,7 @@ public class Block implements Serializable {
 
     final int zeroes;
 
-    String miner = "";
+    String miner = null;
 
     Block(int id, String prevHash, int zeroes) {
 
@@ -46,8 +48,12 @@ public class Block implements Serializable {
         this.information.put(key, information);
     }
 
+    void addPayload(String payload) {
+        this.payload.add(payload);
+    }
+
     String sha256() {
-        return StringUtil.applySha256(this.prevHash + this.id + this.information.toString());
+        return StringUtil.applySha256(this.prevHash + this.id + this.information.toString() + this.payload.toString());
     }
 
     void setMiner(String miner) {
@@ -58,9 +64,17 @@ public class Block implements Serializable {
         return zeroes;
     }
 
+    boolean isValidated() {
+        return this.miner != null && this.blockHash != null;
+    }
+
     @Override
     public String toString() {
 
+        StringBuilder data = new StringBuilder();
+        for (String line : this.payload) {
+            data.append(line).append("\n");
+        }
         return "Block:\n" +
                 String.format("Created by miner # %s\n", this.miner) +
                 String.format("Id: %d\n", this.id) +
@@ -70,6 +84,8 @@ public class Block implements Serializable {
                 this.prevHash + "\n" +
                 "Hash of the block:\n" +
                 this.blockHash + "\n" +
+                "Block data:\n" +
+                data.toString() +
                 String.format("Block was generating for %.0f seconds", (float) creationDuration / 1000);
     }
 }
