@@ -1,0 +1,5 @@
+# Project exclude paths
+/.gradle/
+/Blockchain/task/build/
+/Blockchain/task/build/classes/java/main/
+/Blockchain/task/build/classes/java/test/
