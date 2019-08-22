@@ -44,6 +44,22 @@ public class Block implements Serializable {
         this.add("timestamp", String.valueOf(timestamp));
     }
 
+    Block (Block block) {
+        id = block.id;
+        miner = block.miner;
+        blockHash = block.blockHash;
+        creationDuration = block.creationDuration;
+        creationStart = block.creationStart;
+        information = block.information;
+        payload = block.payload;
+        prevHash = block.prevHash;
+        zeroes = block.zeroes;
+
+        random = new Random();
+        long timestamp = new Date().getTime();
+        this.add("timestamp", String.valueOf(timestamp));
+    }
+
     void add(String key, String information) {
         this.information.put(key, information);
     }
@@ -87,5 +103,11 @@ public class Block implements Serializable {
                 "Block data:\n" +
                 data.toString() +
                 String.format("Block was generating for %.0f seconds", (float) creationDuration / 1000);
+    }
+
+    @Override
+    public Block clone() throws CloneNotSupportedException {
+        super.clone();
+        return new Block(this);
     }
 }

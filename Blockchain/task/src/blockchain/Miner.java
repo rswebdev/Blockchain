@@ -1,5 +1,7 @@
 package blockchain;
 
+import java.text.SimpleDateFormat;
+import java.time.format.DateTimeFormatterBuilder;
 import java.util.Date;
 
 public class Miner implements Runnable {
@@ -15,36 +17,40 @@ public class Miner implements Runnable {
     @Override
     public void run() {
 
-        Blockchain.debugOutput(String.format("Miner # %d generates a block...", minerId), Blockchain.LOG_TYPE.INFO, Blockchain.LOG_SENDER.MINER);
-
-        Block block;
-
+        Block workedOnBlock;
+        //int askedTimes = 0;
+        Blockchain.debugOutput(String.format("Miner # %d asks for block...", minerId), Blockchain.LOG_TYPE.DEBUG, Blockchain.LOG_SENDER.MINER);
         do {
-            block = blockchain.getBlockToMine();
-        } while (block.isValidated());
+            workedOnBlock = new Block(blockchain.getBlockToMine());
+            //askedTimes++;
+        } while (workedOnBlock.isValidated());// && askedTimes < 10);
 
-        block.setMiner(String.valueOf(minerId));
-        block.addPayload(String.format("Miner # %d: here comes the block, da da da daaa", minerId));
+        //Blockchain.debugOutput(String.format("Miner # %d received block %s", minerId, workedOnBlock), Blockchain.LOG_TYPE.DEBUG, Blockchain.LOG_SENDER.MINER);
 
-        Blockchain.debugOutput(String.format("Miner # %d started hashing of block #%d...", minerId, block.id), Blockchain.LOG_TYPE.INFO, Blockchain.LOG_SENDER.MINER);
-        String magicNumber;
-        do {
-            magicNumber = String.valueOf(block.random.nextInt() & Integer.MAX_VALUE);
-            block.add("magicnumber", magicNumber);
-            block.blockHash = block.sha256();
-        } while (!block.blockHash.startsWith("0".repeat(block.zeroes)) && !Thread.currentThread().isInterrupted());
+        //if (!workedOnBlock.isValidated()) {
+            Blockchain.debugOutput(String.format("Miner # %d received block %d...", minerId, workedOnBlock.hashCode()), Blockchain.LOG_TYPE.DEBUG, Blockchain.LOG_SENDER.MINER);
 
-        if (!block.blockHash.startsWith("0".repeat(block.zeroes)) && Thread.currentThread().isInterrupted()) {
-            Blockchain.debugOutput("Received \"Give up\" from application...", Blockchain.LOG_TYPE.INFO, Blockchain.LOG_SENDER.MINER);
-        } else {
-            long creationEnd = new Date().getTime();
-            block.creationDuration = creationEnd - block.creationStart;
-            Blockchain.debugOutput(String.format("Hashing of Block (%s-%d) done in %f", minerId, block.id, (float) block.creationDuration / 1000), Blockchain.LOG_TYPE.INFO, Blockchain.LOG_SENDER.MINER);
-            Blockchain.debugOutput(String.format("Miner # %d finished hashing of block #%d...", minerId, block.id), Blockchain.LOG_TYPE.INFO, Blockchain.LOG_SENDER.MINER);
+            workedOnBlock.setMiner(String.valueOf(minerId));
+            workedOnBlock.addPayload(String.format("Miner # %d: %s finished hashing", minerId, new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(new Date())));
 
-            Blockchain.debugOutput(String.format("Miner # %d adds block #%d to chain...", minerId, block.id), Blockchain.LOG_TYPE.INFO, Blockchain.LOG_SENDER.MINER);
-            blockchain.receiveHash(block);
-            Blockchain.debugOutput(String.format("Miner # %d is done with block #%d...", minerId, block.id), Blockchain.LOG_TYPE.INFO, Blockchain.LOG_SENDER.MINER);
-        }
+            Blockchain.debugOutput(String.format("Miner # %d started hashing of block #%d...", minerId, workedOnBlock.id), Blockchain.LOG_TYPE.INFO, Blockchain.LOG_SENDER.MINER);
+            String magicNumber;
+            do {
+                magicNumber = String.valueOf(workedOnBlock.random.nextInt() & Integer.MAX_VALUE);
+                workedOnBlock.add("magicnumber", magicNumber);
+                workedOnBlock.blockHash = workedOnBlock.sha256();
+            } while (!workedOnBlock.blockHash.startsWith("0".repeat(workedOnBlock.zeroes)) && !Thread.currentThread().isInterrupted());
+
+            if (!workedOnBlock.blockHash.startsWith("0".repeat(workedOnBlock.zeroes)) && Thread.currentThread().isInterrupted()) {
+                Blockchain.debugOutput("Received \"Give up\" from application...", Blockchain.LOG_TYPE.INFO, Blockchain.LOG_SENDER.MINER);
+            } else {
+                long creationEnd = new Date().getTime();
+                workedOnBlock.creationDuration = creationEnd - workedOnBlock.creationStart;
+                Blockchain.debugOutput(String.format("Miner # %d finished hashing of block #%d in %f seconds...", minerId, workedOnBlock.id, (float) workedOnBlock.creationDuration / 1000), Blockchain.LOG_TYPE.INFO, Blockchain.LOG_SENDER.MINER);
+                Blockchain.debugOutput(String.format("Miner # %d adds block #%d to chain...", minerId, workedOnBlock.id), Blockchain.LOG_TYPE.INFO, Blockchain.LOG_SENDER.MINER);
+                blockchain.receiveHash(workedOnBlock);
+                Blockchain.debugOutput(String.format("Miner # %d is done with block #%d...", minerId, workedOnBlock.id), Blockchain.LOG_TYPE.INFO, Blockchain.LOG_SENDER.MINER);
+            }
+        //}
     }
 }

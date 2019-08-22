@@ -12,6 +12,7 @@ public class Main {
     private static boolean outDebugInformation = false;
     private static boolean serializeChain = false;
     private static boolean getNumbersOfZeroesFromInput = false;
+    private static boolean useStaticNumberOfZeroes = false;
 
     enum PRINT_OPTIONS {
         ALL, RANGE, FROM_START
@@ -96,7 +97,17 @@ public class Main {
         long start;
         Blockchain blockchain;
 
-        int numberOfZeroes = 1;
+        int numberOfZeroes;
+
+        if (arguments.containsKey("-zeroes")) {
+            numberOfZeroes = Math.max(Math.abs(Integer.parseInt(arguments.get("-zeroes"))), 1);
+        } else {
+            numberOfZeroes = 1;
+        }
+
+        if (arguments.containsKey("-static-zeroes") && "on".equals(arguments.get("-static-zeroes"))) {
+            useStaticNumberOfZeroes = true;
+        }
 
         if (getNumbersOfZeroesFromInput) {
             Scanner scanner = new Scanner(System.in);
@@ -119,6 +130,7 @@ public class Main {
         Blockchain.debugOutput("  outputDebugInformation: " + outDebugInformation, Blockchain.LOG_TYPE.INFO, Blockchain.LOG_SENDER.APP);
         Blockchain.debugOutput("  serializeChain: " + serializeChain, Blockchain.LOG_TYPE.INFO, Blockchain.LOG_SENDER.APP);
         Blockchain.debugOutput("  getNumbersOfZeroesFromInput: " + getNumbersOfZeroesFromInput, Blockchain.LOG_TYPE.INFO, Blockchain.LOG_SENDER.APP);
+        Blockchain.debugOutput("  useStaticNumberOfZeroes: " + useStaticNumberOfZeroes, Blockchain.LOG_TYPE.INFO, Blockchain.LOG_SENDER.APP);
         Blockchain.debugOutput("  printOptions: " + printOptions, Blockchain.LOG_TYPE.INFO, Blockchain.LOG_SENDER.APP);
         Blockchain.debugOutput("  printStart: " + printStart, Blockchain.LOG_TYPE.INFO, Blockchain.LOG_SENDER.APP);
         Blockchain.debugOutput("  printEnd: " + printEnd, Blockchain.LOG_TYPE.INFO, Blockchain.LOG_SENDER.APP);
@@ -144,6 +156,10 @@ public class Main {
             blockchain = new Blockchain(numberOfZeroes);
         }
 
+        if (useStaticNumberOfZeroes) {
+            blockchain.setNoIncreaseZeroes(useStaticNumberOfZeroes);
+        }
+
         // mining
         ExecutorService executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
 
@@ -156,6 +172,7 @@ public class Main {
             List<Callable<Void>> callables = new ArrayList<>();
 
             for (int j = 1; j <= numberOfMiners; j++) {
+                Blockchain.debugOutput("Setting up miner # " + j, Blockchain.LOG_TYPE.INFO, Blockchain.LOG_SENDER.APP);
                 callables.add(toCallable(new Miner(blockchain, j)));
             }
 

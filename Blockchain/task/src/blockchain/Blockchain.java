@@ -2,20 +2,23 @@ package blockchain;
 
 import java.io.Serializable;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.NoSuchElementException;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.UnaryOperator;
 
 class Blockchain implements Serializable {
 
     public static final long serialVersionUID = 0L;
 
-    LinkedList<Block> blocks = new LinkedList<>();
+    ArrayList<Block> blocks = new ArrayList<>();
     private int nextId = 1;
     private int numberOfZeroes;
     private static boolean logDebugOutput = false;
     private static boolean printOutput = false;
-    private Block newBlock;
+    private boolean noIncreaseZeroes = false;
 
     enum LOG_TYPE {
         INFO, IMPORTANT, DEBUG
@@ -37,7 +40,6 @@ class Blockchain implements Serializable {
 
     Blockchain(int numberOfZeroes) {
         this.numberOfZeroes = numberOfZeroes;
-         newBlock = new Block(nextId(), lastHash(), getZeroes());
     }
 
     void setNumbersOfZeroes(int numberOfZeroes) {
@@ -51,7 +53,7 @@ class Blockchain implements Serializable {
     private String lastHash() {
         String lastHash = "0";
         if (blocks.size() > 0) {
-            lastHash = blocks.getLast().blockHash;
+            lastHash = blocks.get(blocks.size()-1).blockHash;
         }
         return lastHash;
     }
@@ -60,45 +62,62 @@ class Blockchain implements Serializable {
         return numberOfZeroes;
     }
 
+    void setNoIncreaseZeroes(boolean noIncreaseZeroes) {
+        this.noIncreaseZeroes = noIncreaseZeroes;
+    }
+
     private void thinkAboutNumbersOfZeroes(float creationTime) {
-        if (creationTime > 120.0) {
-            numberOfZeroes -= 2;
-            debugOutput("Creation took too long, decreasing N to " + numberOfZeroes, LOG_TYPE.IMPORTANT, LOG_SENDER.CHAIN);
-        } else if (creationTime > 60.0) {
-            numberOfZeroes--;
-            debugOutput("Creation took too long, decreasing N to " + numberOfZeroes, LOG_TYPE.IMPORTANT, LOG_SENDER.CHAIN);
-        } else if (creationTime < 10.0) {
-            numberOfZeroes++;
-            debugOutput("Creation was too fast, increasing N to " + numberOfZeroes, LOG_TYPE.IMPORTANT, LOG_SENDER.CHAIN);
+        if (!noIncreaseZeroes) {
+            if (creationTime > 120.0) {
+                numberOfZeroes -= 2;
+                debugOutput("Creation took too long, decreasing N to " + numberOfZeroes, LOG_TYPE.IMPORTANT, LOG_SENDER.CHAIN);
+            } else if (creationTime > 60.0) {
+                numberOfZeroes--;
+                debugOutput("Creation took too long, decreasing N to " + numberOfZeroes, LOG_TYPE.IMPORTANT, LOG_SENDER.CHAIN);
+            } else if (creationTime < 10.0) {
+                numberOfZeroes++;
+                debugOutput("Creation was too fast, increasing N to " + numberOfZeroes, LOG_TYPE.IMPORTANT, LOG_SENDER.CHAIN);
+            }
         }
     }
 
     Block getBlockToMine() {
-        if (blocks.size() > 0) {
-            return blocks.getLast();
-        } else {
-            return newBlock;
-        }
+        Block newBlock = new Block(nextId(), lastHash(), getZeroes());
+        newBlock.addPayload("Dummy payload");
+        return newBlock;
     }
 
-    void receiveHash(Block block) {
-        debugOutput(String.format("Receiving block #%d from miner # %s...", block.id, block.miner), LOG_TYPE.INFO, LOG_SENDER.CHAIN);
-        if (block.id == nextId) {
-            if (validateBlock(block, this)) {
-                nextId++;
-                blocks.removeLast();
-                blocks.add(block);
-                newBlock = new Block(nextId(), lastHash(), getZeroes());
-                thinkAboutNumbersOfZeroes(block.creationDuration / 1000);
-                debugOutput(String.format("Accepting block #%d from miner # %s. You're the fastest.", block.id, block.miner), LOG_TYPE.IMPORTANT, LOG_SENDER.CHAIN);
+    boolean receiveHash(Block block) {
+        synchronized (this) {
+            debugOutput(String.format("Receiving block #%d from miner # %s...", block.id, block.miner), LOG_TYPE.INFO, LOG_SENDER.CHAIN);
+            debugOutput("Other miners need to wait for me to finish this...", LOG_TYPE.INFO, LOG_SENDER.CHAIN);
+            if (block.id == nextId) {
+                if (validateBlock(block, this)) {
+                    nextId++;
+                    try {
+                        debugOutput(String.format("Adding hashedBlock (%d) to chain (%d)", block.hashCode(), blocks.hashCode()), LOG_TYPE.DEBUG, LOG_SENDER.CHAIN);
+                        blocks.add(block);
+                        debugOutput(String.format("Added hashedBlock (%d) to chain (%d)", block.hashCode(), blocks.hashCode()), LOG_TYPE.DEBUG, LOG_SENDER.CHAIN);
+                        debugOutput(String.format("Chain (%d) after adding block %d (%s) ", blocks.hashCode(), block.hashCode(), block), LOG_TYPE.DEBUG, LOG_SENDER.CHAIN);
+                    } catch (NoSuchElementException e) {
+                        blocks.add(block);
+                    }
+                    debugOutput(String.format("Accepting block #%d from miner # %s. You're the fastest.", block.id, block.miner), LOG_TYPE.IMPORTANT, LOG_SENDER.CHAIN);
+                    thinkAboutNumbersOfZeroes(block.creationDuration / 1000);
+                    return true;
+                } else {
+                    debugOutput(String.format("Rejecting block #%d from miner # %s. Could not validate.", block.id, block.miner), LOG_TYPE.IMPORTANT, LOG_SENDER.CHAIN);
+                    return false;
+                }
+            } else {
+                debugOutput(String.format("Rejecting block #%d from miner # %s. Someone else was faster.", block.id, block.miner), LOG_TYPE.INFO, LOG_SENDER.CHAIN);
+                return false;
             }
-        } else {
-            debugOutput(String.format("Rejecting block #%d from miner # %s. Someone else was faster.", block.id, block.miner), LOG_TYPE.INFO, LOG_SENDER.CHAIN);
         }
     }
 
     void addData(String data) {
-        newBlock.addPayload(data);
+        //
     }
 
     void print() {
@@ -160,7 +179,7 @@ class Blockchain implements Serializable {
         }
     }
 
-    static boolean isValid(LinkedList<Block> chain) {
+    static boolean isValid(ArrayList<Block> chain) {
         String lastPrevHash = "";
         String lastBlockHash = "";
         boolean valid = true;
@@ -176,12 +195,16 @@ class Blockchain implements Serializable {
                 lastPrevHash = b.prevHash;
             }
         }
+        debugOutput("Chain isValid: " + valid, LOG_TYPE.INFO, LOG_SENDER.CHAIN);
         return valid;
     }
 
     private static boolean validateBlock(Block block, Blockchain blockchain) {
-        LinkedList<Block> validationChain = new LinkedList<>(blockchain.blocks);
+        debugOutput(String.format("Validating block #%d from miner # %s...", block.id, block.miner), LOG_TYPE.DEBUG, LOG_SENDER.CHAIN);
+        ArrayList<Block> validationChain = new ArrayList<>(blockchain.blocks);
+        debugOutput(String.format("Original chain (%d) %s", blockchain.hashCode(), blockchain.toString()), LOG_TYPE.DEBUG, LOG_SENDER.CHAIN);
         validationChain.add(block);
+        debugOutput(String.format("Validation chain (%d) %s", validationChain.hashCode(), validationChain.toString()), LOG_TYPE.DEBUG, LOG_SENDER.CHAIN);
         return isValid(validationChain);
     }
 
