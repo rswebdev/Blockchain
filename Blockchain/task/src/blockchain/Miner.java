@@ -3,15 +3,18 @@ package blockchain;
 import java.text.SimpleDateFormat;
 import java.time.format.DateTimeFormatterBuilder;
 import java.util.Date;
+import java.util.Random;
 
 public class Miner implements Runnable {
 
     private final Blockchain blockchain;
     private int minerId;
+    private Random random;
 
     Miner(Blockchain blockchain, int minerId) {
         this.blockchain = blockchain;
         this.minerId = minerId;
+        this.random = new Random();
     }
 
     @Override
@@ -36,7 +39,7 @@ public class Miner implements Runnable {
             Blockchain.debugOutput(String.format("Miner # %d started hashing of block #%d...", minerId, workedOnBlock.id), Blockchain.LOG_TYPE.INFO, Blockchain.LOG_SENDER.MINER);
             String magicNumber;
             do {
-                magicNumber = String.valueOf(workedOnBlock.random.nextInt() & Integer.MAX_VALUE);
+                magicNumber = String.valueOf(random.nextInt() & Integer.MAX_VALUE);
                 workedOnBlock.add("magicnumber", magicNumber);
                 workedOnBlock.blockHash = workedOnBlock.sha256();
             } while (!workedOnBlock.blockHash.startsWith("0".repeat(workedOnBlock.zeroes)) && !Thread.currentThread().isInterrupted());

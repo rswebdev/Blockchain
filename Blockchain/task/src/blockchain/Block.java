@@ -19,8 +19,6 @@ public class Block implements Serializable {
 
     String blockHash = null;
 
-    Random random;
-
     long creationStart;
     long creationDuration;
 
@@ -36,8 +34,6 @@ public class Block implements Serializable {
 
         this.prevHash = prevHash;
         this.zeroes = zeroes;
-
-        random = new Random();
 
         long timestamp = new Date().getTime();
 
@@ -55,7 +51,6 @@ public class Block implements Serializable {
         prevHash = block.prevHash;
         zeroes = block.zeroes;
 
-        random = new Random();
         long timestamp = new Date().getTime();
         this.add("timestamp", String.valueOf(timestamp));
     }
